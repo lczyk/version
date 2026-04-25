@@ -73,6 +73,39 @@ func TestFormatVersion(t *testing.T) {
 			version: "1.2.3-rc1",
 			want:    "1.2.3-rc1",
 		},
+		{
+			name:      "8-char commit truncates to 7",
+			version:   "1.0.0",
+			commitSHA: "abcdefgh",
+			want:      "1.0.0 @ abcdefg",
+		},
+		{
+			name:      "pre-release with commit",
+			version:   "1.0.0-alpha.1",
+			commitSHA: "abc1234567890",
+			want:      "1.0.0-alpha.1 @ abc1234",
+		},
+		{
+			name:      "pre-release with full metadata",
+			version:   "1.0.0-rc.1",
+			commitSHA: "abc1234567890",
+			buildDate: "2026-01-01T00:00:00Z",
+			buildInfo: "dirty",
+			want:      "1.0.0-rc.1 @ abc1234 (2026-01-01T00:00:00Z, dirty)",
+		},
+		{
+			name:      "buildinfo with multiple words",
+			version:   "1.0.0",
+			commitSHA: "abc1234567890",
+			buildInfo: "dirty, uncommitted",
+			want:      "1.0.0 @ abc1234 (dirty, uncommitted)",
+		},
+		{
+			name:      "1-char commit",
+			version:   "1.0.0",
+			commitSHA: "a",
+			want:      "1.0.0 @ a",
+		},
 	}
 
 	for _, tt := range tests {

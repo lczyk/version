@@ -200,4 +200,41 @@ mod tests {
     fn prerelease_semver_passes_through() {
         assert_eq!(format_version("1.2.3-rc1", "", "", ""), "1.2.3-rc1");
     }
+
+    #[test]
+    fn eight_char_commit_truncates_to_seven() {
+        assert_eq!(
+            format_version("1.0.0", "abcdefgh", "", ""),
+            "1.0.0 @ abcdefg"
+        );
+    }
+
+    #[test]
+    fn prerelease_with_commit() {
+        assert_eq!(
+            format_version("1.0.0-alpha.1", "abc1234567890", "", ""),
+            "1.0.0-alpha.1 @ abc1234"
+        );
+    }
+
+    #[test]
+    fn prerelease_with_full_metadata() {
+        assert_eq!(
+            format_version("1.0.0-rc.1", "abc1234567890", "2026-01-01T00:00:00Z", "dirty"),
+            "1.0.0-rc.1 @ abc1234 (2026-01-01T00:00:00Z, dirty)"
+        );
+    }
+
+    #[test]
+    fn buildinfo_with_multiple_words() {
+        assert_eq!(
+            format_version("1.0.0", "abc1234567890", "", "dirty, uncommitted"),
+            "1.0.0 @ abc1234 (dirty, uncommitted)"
+        );
+    }
+
+    #[test]
+    fn one_char_commit() {
+        assert_eq!(format_version("1.0.0", "a", "", ""), "1.0.0 @ a");
+    }
 }

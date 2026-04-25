@@ -1,6 +1,10 @@
 package version
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/lczyk/assert"
+)
 
 func TestFormatVersion(t *testing.T) {
 	tests := []struct {
@@ -61,9 +65,7 @@ func TestFormatVersion(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := FormatVersion(tt.version, tt.commitSHA, tt.buildDate, tt.buildInfo)
-			if got != tt.want {
-				t.Errorf("got %q, want %q", got, tt.want)
-			}
+			assert.Equal(t, got, tt.want)
 		})
 	}
 }

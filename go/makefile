@@ -12,16 +12,6 @@ test:  ## Run the test suite
 		go test ./...; \
 	fi
 
-.PHONY: cover
-cover:  ## Coverage profile + HTML file (cover.out, cover.html)
-	go test -coverpkg=./... -coverprofile=cover.out ./...
-	go tool cover -func=cover.out
-	go tool cover -html=cover.out -o cover.html
-
-.PHONY: cover-open
-cover-open: cover  ## Run coverage and open the HTML report in a browser
-	go tool cover -html=cover.out
-
 .PHONY: lint
 lint:  ## go vet + gofmt check (no writes)
 	go vet ./...

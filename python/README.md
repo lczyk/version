@@ -8,7 +8,7 @@ Format a version string from its parts. Mirror of [the Go package](../go/), conf
 from version import format_version
 
 s = format_version(version, commit_sha, build_date, build_info)
-# "0.7.0+5f2fc35 (2026-04-25T10:01:45Z, dirty)"
+# "0.7.0 @ 5f2fc35 (2026-04-25T10:01:45Z, dirty)"
 ```
 
 Output format and edge cases: see [SPEC §4](../SPEC.md).

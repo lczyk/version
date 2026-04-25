@@ -8,7 +8,7 @@ Single crate, no workspace. Used as both a runtime dep (formatter + macro) and a
 
 ```rust
 let s = version::format_version("1.0.0", "abc1234567890", "", "dirty");
-// "1.0.0+abc1234 (dirty)"
+// "1.0.0 @ abc1234 (dirty)"
 ```
 
 Output format and edge cases: see [SPEC §4](../SPEC.md).
@@ -19,7 +19,7 @@ Compile-time string from `CARGO_PKG_VERSION` plus env vars set by [`emit`] in `b
 
 ```rust
 println!("mytool {}", version::version!());
-// "mytool 0.7.0+5f2fc35 (2026-04-25T10:01:45Z, dirty)"
+// "mytool 0.7.0 @ 5f2fc35 (2026-04-25T10:01:45Z, dirty)"
 ```
 
 ## emit (build-script helper)

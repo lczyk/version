@@ -4,7 +4,7 @@ def format_version(
     result = version
 
     if commit_sha:
-        result += "+" + commit_sha[: min(7, len(commit_sha))]
+        result += " @ " + commit_sha[: min(7, len(commit_sha))]
 
     if build_date and build_info:
         result += f" ({build_date}, {build_info})"

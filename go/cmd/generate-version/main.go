@@ -7,9 +7,15 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
+
+	version "github.com/lczyk/version/go"
 )
+
+// SemVer 2.0.0, https://semver.org/#is-there-a-suggested-regular-expression-regex-to-check-a-semver-string
+var semverRE = regexp.MustCompile(`^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-((?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\.(?:0|[1-9]\d*|\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\+([0-9a-zA-Z-]+(?:\.[0-9a-zA-Z-]+)*))?$`)
 
 //go:generate go run . -out version_gen.go -pkg main -init
 
@@ -35,16 +41,8 @@ func run() error {
 	flag.Parse()
 
 	if *showVersion {
-		dirty := ""
-		if BuildInfo != "" {
-			dirty = " " + BuildInfo
-		}
-		sha := CommitSHA
-		if len(sha) > 7 {
-			sha = sha[:7]
-		}
-		fmt.Printf("generate-version %s (commit: %s, built: %s%s)\n",
-			Version, sha, BuildDate, dirty)
+		fmt.Printf("generate-version %s\n",
+			version.FormatVersion(Version, CommitSHA, BuildDate, BuildInfo))
 		return nil
 	}
 
@@ -68,6 +66,9 @@ func run() error {
 	}
 	if version == "" {
 		return fmt.Errorf("no version found in VERSION file")
+	}
+	if !semverRE.MatchString(version) {
+		return fmt.Errorf("VERSION %q is not a valid SemVer 2.0.0 string (https://semver.org)", version)
 	}
 
 	commitSHA, err := runGit(projectRoot, "rev-parse", "HEAD")

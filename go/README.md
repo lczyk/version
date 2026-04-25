@@ -8,7 +8,7 @@ Format a version string from its parts. Conforms to [SPEC.md](../SPEC.md).
 import "github.com/lczyk/version/go"
 
 s := version.FormatVersion(Version, CommitSHA, BuildDate, BuildInfo)
-// "0.7.0+5f2fc35 (2026-04-25T10:01:45Z, dirty)"
+// "0.7.0 @ 5f2fc35 (2026-04-25T10:01:45Z, dirty)"
 ```
 
 Output format and edge cases: see [SPEC §4](../SPEC.md).

@@ -7,12 +7,20 @@ Tiny build-time generated version-string format + per-language helpers to wire i
 Output:
 
 ```
-<version>+<commit7> (<date>, <buildinfo>)
+<semver> @ <commit7> (<date>, <buildinfo>)
 ```
 
-Example: `0.7.0+5f2fc35 (2026-04-25T10:01:45Z, dirty)`
+Example: `0.7.0 @ 5f2fc35 (2026-04-25T10:01:45Z, dirty)`
 
-Trailing parts drop when empty. Full grammar, conformance rules, and edge cases in [SPEC.md](SPEC.md).
+Trailing parts drop when empty. The `<semver>` prefix is a strict [SemVer 2.0.0](https://semver.org) string and is the first whitespace-delimited token of the output, so it is trivial to extract:
+
+```sh
+foo --version | awk '{print $2}'                  # "<prog> <semver> @ ..." → <semver>
+foo --version | cut -d' ' -f2                     # same
+foo --version | sed -E 's/^[^ ]+ ([^ ]+).*/\1/'   # same, POSIX sed
+```
+
+Full grammar, conformance rules, edge cases, and more extraction snippets in [SPEC.md](SPEC.md) (see [§4.2](SPEC.md#42-semver-extraction)).
 
 ## Implementations
 

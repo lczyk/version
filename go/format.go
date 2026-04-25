@@ -4,7 +4,7 @@ func FormatVersion(version, commitSHA, buildDate, buildInfo string) string {
 	result := version
 
 	if commitSHA != "" {
-		result += "+" + commitSHA[:min(7, len(commitSHA))]
+		result += " @ " + commitSHA[:min(7, len(commitSHA))]
 	}
 
 	switch {

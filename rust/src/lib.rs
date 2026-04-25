@@ -1,12 +1,15 @@
 //! Format a version string from its parts.
 //!
-//! Output: `<version>+<commit7> (<date>, <buildinfo>)`. Trailing parts omitted when empty.
+//! Output: `<semver> @ <commit7> (<date>, <buildinfo>)`. Trailing parts omitted when empty.
+//! `<semver>` is the caller's version field, which MUST be a valid SemVer 2.0.0 string
+//! (<https://semver.org>). It is emitted verbatim, with no separator characters following it,
+//! so it can be extracted with `awk '{print $1}'` or `cut -d' ' -f1`.
 //!
 //! # Runtime use
 //!
 //! ```
 //! let s = version::format_version("1.0.0", "abc1234567890", "", "dirty");
-//! assert_eq!(s, "1.0.0+abc1234 (dirty)");
+//! assert_eq!(s, "1.0.0 @ abc1234 (dirty)");
 //! ```
 //!
 //! Or via macro, which reads `CARGO_PKG_VERSION` plus env vars set by [`emit`]:
@@ -36,7 +39,7 @@ pub fn format_version(
 
     if !commit_sha.is_empty() {
         let n = commit_sha.len().min(7);
-        result.push('+');
+        result.push_str(" @ ");
         result.push_str(&commit_sha[..n]);
     }
 
@@ -139,7 +142,7 @@ mod tests {
     fn version_with_commit() {
         assert_eq!(
             format_version("1.0.0", "abc1234567890", "", ""),
-            "1.0.0+abc1234"
+            "1.0.0 @ abc1234"
         );
     }
 
@@ -147,7 +150,7 @@ mod tests {
     fn version_with_commit_and_date() {
         assert_eq!(
             format_version("1.0.0", "abc1234567890", "2026-01-01T00:00:00Z", ""),
-            "1.0.0+abc1234 (2026-01-01T00:00:00Z)"
+            "1.0.0 @ abc1234 (2026-01-01T00:00:00Z)"
         );
     }
 
@@ -155,7 +158,7 @@ mod tests {
     fn version_with_commit_date_dirty() {
         assert_eq!(
             format_version("1.0.0", "abc1234567890", "2026-01-01T00:00:00Z", "dirty"),
-            "1.0.0+abc1234 (2026-01-01T00:00:00Z, dirty)"
+            "1.0.0 @ abc1234 (2026-01-01T00:00:00Z, dirty)"
         );
     }
 
@@ -163,17 +166,38 @@ mod tests {
     fn dirty_without_date() {
         assert_eq!(
             format_version("1.0.0", "abc1234567890", "", "dirty"),
-            "1.0.0+abc1234 (dirty)"
+            "1.0.0 @ abc1234 (dirty)"
         );
     }
 
     #[test]
     fn short_commit_sha() {
-        assert_eq!(format_version("1.0.0", "abc", "", ""), "1.0.0+abc");
+        assert_eq!(format_version("1.0.0", "abc", "", ""), "1.0.0 @ abc");
     }
 
     #[test]
     fn seven_char_commit_sha() {
-        assert_eq!(format_version("1.0.0", "abcdefg", "", ""), "1.0.0+abcdefg");
+        assert_eq!(
+            format_version("1.0.0", "abcdefg", "", ""),
+            "1.0.0 @ abcdefg"
+        );
+    }
+
+    #[test]
+    fn date_without_commit() {
+        assert_eq!(
+            format_version("1.0.0", "", "2026-01-01T00:00:00Z", ""),
+            "1.0.0 (2026-01-01T00:00:00Z)"
+        );
+    }
+
+    #[test]
+    fn dirty_without_commit_or_date() {
+        assert_eq!(format_version("1.0.0", "", "", "dirty"), "1.0.0 (dirty)");
+    }
+
+    #[test]
+    fn prerelease_semver_passes_through() {
+        assert_eq!(format_version("1.2.3-rc1", "", "", ""), "1.2.3-rc1");
     }
 }

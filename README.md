@@ -1,6 +1,8 @@
 # version
 
-Tiny version-string format + per-language helpers to wire it into a binary.
+[![lint_and_test](https://github.com/lczyk/version/actions/workflows/lint_and_test.yml/badge.svg)](https://github.com/lczyk/version/actions/workflows/lint_and_test.yml)
+
+Tiny build-time generated version-string format + per-language helpers to wire it into a binary.
 
 Output:
 

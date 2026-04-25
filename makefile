@@ -1,6 +1,6 @@
 .SUFFIXES:
 
-SUBDIRS := go rust
+SUBDIRS := go rust python
 
 .PHONY: help test lint format $(SUBDIRS)
 

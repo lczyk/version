@@ -18,7 +18,8 @@ Trailing parts drop when empty. Full grammar, conformance rules, and edge cases 
 
 | language | dir            | helper                                       |
 |----------|----------------|----------------------------------------------|
-| Go       | [go/](go/)     | `FormatVersion` + `generate-version` codegen |
-| Rust     | [rust/](rust/) | `format_version` + `version!()` macro + `emit()` build-script helper |
+| Go       | [go/](go/)         | `FormatVersion` + `generate-version` codegen |
+| Rust     | [rust/](rust/)     | `format_version` + `version!()` macro + `emit()` build-script helper |
+| Python   | [python/](python/) | `format_version` + `generate-version` codegen |
 
-Both produce byte-identical output for the same inputs (per [SPEC §8](SPEC.md)).
+All produce byte-identical output for the same inputs (per [SPEC §8](SPEC.md)).

@@ -1,0 +1,29 @@
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Build / dist
+build/
+dist/
+*.egg-info/
+
+# Tooling
+.tox/
+.venv/
+.python-version
+uv.lock
+
+# Coverage
+.coverage
+htmlcov/
+test-output.xml
+
+# Generated artifact (per SPEC §7)
+_version.py
+
+# Editor
+.vscode/

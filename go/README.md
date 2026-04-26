@@ -13,9 +13,70 @@ s := version.FormatVersion(Version, CommitSHA, BuildDate, BuildInfo)
 
 Output format and edge cases: see [SPEC §4](../SPEC.md).
 
+## Read (runtime)
+
+Recommended for new projects, and required if your tool will be invoked via
+`go run module@version` or `go install module@version`.
+
+```go
+package main
+
+import (
+    _ "embed"
+    "fmt"
+    "strings"
+
+    version "github.com/lczyk/version/go"
+)
+
+//go:embed VERSION
+var versionFile string
+
+func main() {
+    info := version.Read(strings.TrimSpace(versionFile))
+    fmt.Println("myapp", info)
+    // myapp 0.7.0 @ 5f2fc35 (2026-04-25T10:01:45Z, dirty)
+}
+```
+
+`Read(fallbackVersion)` returns an `Info{Version, CommitSHA, BuildDate, BuildInfo}`
+populated from `runtime/debug.ReadBuildInfo()`. The Go toolchain stamps VCS
+metadata (`vcs.revision`, `vcs.time`, `vcs.modified`) into every binary at
+build time and sets `Main.Version` for module-installed binaries.
+
+`fallbackVersion` is used when `Main.Version` is `""` or `"(devel)"` — i.e.
+local builds, or builds from a non-tagged commit. Common pattern: embed
+`VERSION` from the repo root with `//go:embed`.
+
+`Info.String()` calls `FormatVersion` with the four fields, so `fmt.Println(info)`
+yields the spec-conformant string.
+
+What you get in each scenario:
+
+| how the binary was built                  | `Version`         | `CommitSHA` | `BuildDate` | `BuildInfo` |
+| ----------------------------------------- | ----------------- | ----------- | ----------- | ----------- |
+| `go run module@v1.2.3`                    | `v1.2.3`          | from VCS    | from VCS    | `dirty?`    |
+| `go install module@latest`                | resolved tag      | from VCS    | from VCS    | `dirty?`    |
+| `go build` in a clean checkout            | `fallbackVersion` | from VCS    | from VCS    | empty       |
+| `go build` with uncommitted changes       | `fallbackVersion` | from VCS    | from VCS    | `dirty`     |
+| `go build -buildvcs=false` or no git      | `fallbackVersion` | empty       | empty       | empty       |
+
+### Why prefer Read over the generator
+
+The `generate-version` generator emits `version.go` with package-level vars.
+If that file is gitignored (recommended, since it changes per build), then
+`go run github.com/you/tool@v1.2.3` fails to compile: the proxy fetches the
+tagged source tree, which lacks `version.go`. Committing the generated file
+makes it stale by one commit on every build. `Read()` sidesteps both: no
+generated source, version data sourced from the binary at runtime.
+
 ## generate-version
 
 `go generate` tool: reads `VERSION` from project root + git state, writes a Go file with the four named values.
+
+Use this if you want compile-time vars (auditing, builds outside `go install`
+flows, ensuring `Version` non-empty as a build error not runtime surprise).
+For everything else, prefer `Read()` above.
 
 ### Setup
 

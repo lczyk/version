@@ -26,7 +26,7 @@ Full grammar, conformance rules, edge cases, and more extraction snippets in [SP
 
 | language | dir            | helper                                       |
 |----------|----------------|----------------------------------------------|
-| Go       | [go/](go/)         | `FormatVersion` + `generate-version` codegen |
+| Go       | [go/](go/)         | `FormatVersion` + `Read()` runtime helper + `generate-version` codegen |
 | Rust     | [rust/](rust/)     | `format_version` + `version!()` macro + `emit()` build-script helper |
 | Python   | [python/](python/) | `format_version` + `generate-version` codegen |
 

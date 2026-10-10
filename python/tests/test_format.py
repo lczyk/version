@@ -30,8 +30,20 @@ from version import format_version
         ("1.2.3-rc1", "", "", "", "1.2.3-rc1"),
         ("1.0.0", "abcdefgh", "", "", "1.0.0 @ abcdefg"),
         ("1.0.0-alpha.1", "abc1234567890", "", "", "1.0.0-alpha.1 @ abc1234"),
-        ("1.0.0-rc.1", "abc1234567890", "2026-01-01T00:00:00Z", "dirty", "1.0.0-rc.1 @ abc1234 (2026-01-01T00:00:00Z, dirty)"),
-        ("1.0.0", "abc1234567890", "", "dirty, uncommitted", "1.0.0 @ abc1234 (dirty, uncommitted)"),
+        (
+            "1.0.0-rc.1",
+            "abc1234567890",
+            "2026-01-01T00:00:00Z",
+            "dirty",
+            "1.0.0-rc.1 @ abc1234 (2026-01-01T00:00:00Z, dirty)",
+        ),
+        (
+            "1.0.0",
+            "abc1234567890",
+            "",
+            "dirty, uncommitted",
+            "1.0.0 @ abc1234 (dirty, uncommitted)",
+        ),
         ("1.0.0", "a", "", "", "1.0.0 @ a"),
     ],
 )

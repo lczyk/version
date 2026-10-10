@@ -55,9 +55,7 @@ def test_invalid_semver_versions() -> None:
             f.write(v)
             f.flush()
             try:
-                with pytest.raises(
-                    ValueError, match="not a valid SemVer 2.0.0 string"
-                ):
+                with pytest.raises(ValueError, match="not a valid SemVer 2.0.0 string"):
                     read_version(Path(f.name))
             finally:
                 Path(f.name).unlink()

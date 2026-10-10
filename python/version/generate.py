@@ -70,7 +70,9 @@ def main(argv: list[str] | None = None) -> int:
         "--out", default="_version.py", help="output file path (default: _version.py)"
     )
     p.add_argument(
-        "--version", action="store_true", help="print generate-version's own version and exit"
+        "--version",
+        action="store_true",
+        help="print generate-version's own version and exit",
     )
     args = p.parse_args(argv)
 
@@ -78,7 +80,9 @@ def main(argv: list[str] | None = None) -> int:
         from . import _version as _v
         from ._format import format_version
 
-        print(f"generate-version {format_version(_v.version, _v.commit_sha, _v.build_date, _v.build_info)}")
+        print(
+            f"generate-version {format_version(_v.version, _v.commit_sha, _v.build_date, _v.build_info)}"
+        )
         return 0
 
     try:

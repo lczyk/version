@@ -44,9 +44,26 @@ populated from `runtime/debug.ReadBuildInfo()`. The Go toolchain stamps VCS
 metadata (`vcs.revision`, `vcs.time`, `vcs.modified`) into every binary at
 build time and sets `Main.Version` for module-installed binaries.
 
-`fallbackVersion` is used when `Main.Version` is `""` or `"(devel)"` — i.e.
-local builds, or builds from a non-tagged commit. Common pattern: embed
-`VERSION` from the repo root with `//go:embed`.
+`fallbackVersion` is used when `Main.Version` carries no release: `""`,
+`"(devel)"`, or a pseudo-version. Go 1.24+ stamps local builds in a git checkout
+with a pseudo-version (`v0.0.0-20260101000000-abcdef123456+dirty`), so without
+this every untagged local build would report one. A real tag is normalised to
+SemVer: `v1.2.3` and `v1.2.3+dirty` both become `1.2.3` (dirtiness is reported
+in `BuildInfo`).
+
+Common pattern: embed `VERSION` from the repo root with `//go:embed`. Embed
+patterns cannot reach parent directories, so if `main` lives under `cmd/`, put a
+small package at the module root that embeds `VERSION` and import it:
+
+```go
+// version.go at the module root
+package myapp
+
+import _ "embed"
+
+//go:embed VERSION
+var VersionFile string
+```
 
 `Info.String()` calls `FormatVersion` with the four fields, so `fmt.Println(info)`
 yields the spec-conformant string.
@@ -55,11 +72,15 @@ What you get in each scenario:
 
 | how the binary was built                  | `Version`         | `CommitSHA` | `BuildDate` | `BuildInfo` |
 | ----------------------------------------- | ----------------- | ----------- | ----------- | ----------- |
-| `go run module@v1.2.3`                    | `v1.2.3`          | from VCS    | from VCS    | `dirty?`    |
+| `go run module@v1.2.3`                    | `1.2.3`           | from VCS    | from VCS    | `dirty?`    |
 | `go install module@latest`                | resolved tag      | from VCS    | from VCS    | `dirty?`    |
+| `go build` at a tagged commit (Go 1.24+)  | tag               | from VCS    | from VCS    | `dirty?`    |
 | `go build` in a clean checkout            | `fallbackVersion` | from VCS    | from VCS    | empty       |
 | `go build` with uncommitted changes       | `fallbackVersion` | from VCS    | from VCS    | `dirty`     |
 | `go build -buildvcs=false` or no git      | `fallbackVersion` | empty       | empty       | empty       |
+
+`BuildDate` is the commit time (`vcs.time`), not the wall clock, so every build
+of a commit reports the same string.
 
 ### Why prefer Read over the generator
 
@@ -73,6 +94,10 @@ generated source, version data sourced from the binary at runtime.
 ## generate-version
 
 `go generate` tool: reads `VERSION` from project root + git state, writes a Go file with the four named values.
+
+- `BuildDate` is HEAD's committer time, matching `Read()`. regenerating at the same commit gives the same file.
+- the output file is excluded from the dirty check, so a tracked generated file does not report `dirty` forever.
+- an up-to-date output file is left untouched (`Unchanged ...`), so its mtime does not trigger rebuilds.
 
 Use this if you want compile-time vars (auditing, builds outside `go install`
 flows, ensuring `Version` non-empty as a build error not runtime surprise).

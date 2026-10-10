@@ -47,7 +47,7 @@ fn main() {
 | env var               | source                                        |
 |-----------------------|-----------------------------------------------|
 | `VERSION_COMMIT_SHA`  | `git rev-parse HEAD` (full SHA, or `""`)      |
-| `VERSION_BUILD_DATE`  | `date -u +%Y-%m-%dT%H:%M:%SZ` (or `""`)       |
+| `VERSION_BUILD_DATE`  | HEAD's committer time, UTC `%Y-%m-%dT%H:%M:%SZ` (or `""`) |
 | `VERSION_BUILD_INFO`  | `"dirty"` if `git status --porcelain` non-empty, else `""` |
 
 Per [SPEC §6](../SPEC.md), git failure emits empty strings (no error).

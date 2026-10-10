@@ -26,7 +26,7 @@ not defined: SemVer grammar (see linked spec), git internals, distribution mecha
 |-------------|----------------------------------------------------------|
 | `version`   | project version (e.g. `1.2.3`, `1.2.3-rc1`). MUST be SemVer 2.0.0. |
 | `commitSHA` | full git commit SHA, hex. may be empty.                  |
-| `buildDate` | build timestamp, ISO-8601 / RFC 3339 UTC. may be empty.  |
+| `buildDate` | source commit timestamp, ISO-8601 / RFC 3339 UTC. may be empty. |
 | `buildInfo` | free-form build annotation (e.g. `dirty`). may be empty. |
 
 all four strings. formatter no further validation.
@@ -111,7 +111,7 @@ regardless of wiring path (§7), the four §3 inputs have semantics:
 |-------------|-------------------------------------------------------------------------------------|
 | `version`   | project version per `VERSION` file (§5), or toolchain-reported module version where available. |
 | `commitSHA` | full git commit SHA, hex. empty if unavailable.                                     |
-| `buildDate` | build timestamp, RFC 3339 / ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`). empty if unavailable. |
+| `buildDate` | committer timestamp of the source revision (HEAD), RFC 3339 / ISO-8601 UTC (`YYYY-MM-DDTHH:MM:SSZ`). commit time, not wall clock: same value for every build of a commit, so builds stay reproducible. empty if unavailable. |
 | `buildInfo` | `"dirty"` iff working tree had uncommitted changes at build time; else `""`.        |
 
 empty-string semantics: when source unavailable (no git, VCS stamping disabled, etc.) field MUST be `""`, not synthesised. impls MUST NOT substitute placeholders (`unknown`, `n/a`, wall clock when VCS time absent, etc.).
@@ -131,6 +131,7 @@ requirements:
 1. reader MUST accept caller-provided `fallbackVersion` (or equiv), used as `version` when toolchain reports no meaningful module version (local untagged build, `(devel)`, etc.). caller typically passes trimmed `VERSION` file embedded into binary.
 2. when toolchain VCS metadata unavailable (e.g. Go `-buildvcs=false`, non-VCS build), `commitSHA` / `buildDate` / `buildInfo` MUST be empty per §6, not synthesised.
 3. reader output MUST be byte-identical to what generator (§7.2) would produce given same `(version, commitSHA, buildDate, buildInfo)` tuple via `FormatVersion`.
+4. toolchain-reported version MUST be normalised to SemVer before use: leading `v` stripped (`v1.2.3` -> `1.2.3`); a dirtiness suffix dropped (`v1.2.3+dirty` -> `1.2.3`, dirtiness goes in `buildInfo`); synthesised versions carrying no release info (Go pseudo-versions, e.g. `v0.0.0-20260101000000-abcdef123456`, which Go 1.24+ stamps into local builds) treated as absent, so `fallbackVersion` applies.
 
 Go reference: `version.Read(fallbackVersion string) Info`.
 
@@ -150,10 +151,12 @@ generator-specific source mapping (only when no toolchain metadata):
 |-------------|-------------------------------------------------------------------------------------|
 | `version`   | `VERSION` file (§5).                                                                |
 | `commitSHA` | `git rev-parse HEAD`, trimmed. full SHA. empty if unavailable.                       |
-| `buildDate` | current UTC time, RFC 3339 / ISO-8601. empty if unavailable.              |
+| `buildDate` | `git show -s --format=%ct HEAD` (committer time), as UTC RFC 3339 / ISO-8601. empty if unavailable. |
 | `buildInfo` | `"dirty"` iff `git status --porcelain` non-empty output; else `""`.                 |
 
-impl MAY scope dirty check to subdir (e.g. `git status --porcelain -- .`); whole-repo + scoped both permitted.
+impl MAY scope dirty check to subdir (e.g. `git status --porcelain -- .`); whole-repo + scoped both permitted. generator MUST exclude its own output file from dirty check when inside repo (else tracked artifact, once regenerated, marks every later build dirty).
+
+generator SHOULD leave output file untouched when content unchanged (no rewrite, no mtime bump), so build tools don't rebuild needlessly.
 
 git invoke failure (no git, not repo, etc.) impl-defined: generator MAY error, or MAY emit empty strings. Go impl errors; Rust impl emits empty strings.
 

@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import datetime as _dt
+import os
 import re
 import subprocess
 import sys
@@ -62,6 +63,24 @@ def run_git(cwd: Path, *args: str) -> str:
     return out.stdout.strip()
 
 
+def commit_date(cwd: Path) -> str:
+    """HEAD's committer time in RFC 3339 UTC, matching Go's vcs.time."""
+    ct = int(run_git(cwd, "show", "-s", "--format=%ct", "HEAD"))
+    return _dt.datetime.fromtimestamp(ct, _dt.timezone.utc).strftime(
+        "%Y-%m-%dT%H:%M:%SZ"
+    )
+
+
+def status_args(root: Path, out: Path) -> list[str]:
+    """git status args over the whole repo, excluding the output file so a
+    tracked, regenerated file does not mark every later run dirty."""
+    args = ["status", "--porcelain"]
+    rel = os.path.relpath(out.resolve(), root.resolve())
+    if not rel.startswith(".."):
+        args += ["--", ":/", f":(exclude){Path(rel).as_posix()}"]
+    return args
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description="Generate _version.py from VERSION + git state."
@@ -89,23 +108,27 @@ def main(argv: list[str] | None = None) -> int:
         root = find_project_root(Path.cwd())
         version = read_version(root / "VERSION")
         commit_sha = run_git(root, "rev-parse", "HEAD")
-        dirty = run_git(root, "status", "--porcelain")
+        build_date = commit_date(root)
+        dirty = run_git(root, *status_args(root, Path(args.out)))
     except (FileNotFoundError, ValueError, subprocess.CalledProcessError) as e:
         print(f"Error: {e}", file=sys.stderr)
         return 1
 
-    build_date = _dt.datetime.now(_dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     build_info = "dirty" if dirty else ""
 
-    Path(args.out).write_text(
-        _TEMPLATE.format(
-            version=version,
-            commit_sha=commit_sha,
-            build_date=build_date,
-            build_info=build_info,
-        )
+    content = _TEMPLATE.format(
+        version=version,
+        commit_sha=commit_sha,
+        build_date=build_date,
+        build_info=build_info,
     )
     short = commit_sha[: min(7, len(commit_sha))]
+    out = Path(args.out)
+    # Leave an up-to-date file alone so its mtime does not trigger rebuilds.
+    if out.is_file() and out.read_text() == content:
+        print(f"Unchanged {args.out}: {version} (commit: {short})")
+        return 0
+    out.write_text(content)
     print(f"Generated {args.out}: {version} (commit: {short})")
     return 0
 

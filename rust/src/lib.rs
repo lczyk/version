@@ -84,6 +84,8 @@ macro_rules! version {
 fn cmd_output(program: &str, args: &[&str], dir: Option<&str>) -> Option<String> {
     let mut c = Command::new(program);
     c.args(args);
+    // Only affects git's format-local dates: render them in UTC.
+    c.env("TZ", "UTC");
     if let Some(d) = dir {
         c.current_dir(d);
     }
@@ -98,7 +100,7 @@ fn cmd_output(program: &str, args: &[&str], dir: Option<&str>) -> Option<String>
 ///
 /// Sets:
 /// - `VERSION_COMMIT_SHA` — full git SHA, or `""` if unavailable
-/// - `VERSION_BUILD_DATE` — UTC ISO-8601 from `date -u`, or `""` if unavailable
+/// - `VERSION_BUILD_DATE` -- HEAD's committer time, UTC ISO-8601, or `""` if unavailable
 /// - `VERSION_BUILD_INFO` — `"dirty"` if working tree dirty, else `""`
 pub fn emit() {
     let manifest_dir = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into());
@@ -116,9 +118,19 @@ pub fn emit() {
         _ => String::new(),
     };
 
-    let date = cmd_output("date", &["-u", "+%Y-%m-%dT%H:%M:%SZ"], None)
-        .filter(|s| !s.is_empty())
-        .unwrap_or_default();
+    let date = cmd_output(
+        "git",
+        &[
+            "show",
+            "-s",
+            "--date=format-local:%Y-%m-%dT%H:%M:%SZ",
+            "--format=%cd",
+            "HEAD",
+        ],
+        Some(&manifest_dir),
+    )
+    .filter(|s| !s.is_empty())
+    .unwrap_or_default();
 
     println!("cargo:rustc-env=VERSION_COMMIT_SHA={sha}");
     println!("cargo:rustc-env=VERSION_BUILD_DATE={date}");

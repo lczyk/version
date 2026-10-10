@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -27,18 +28,21 @@ var (
 )
 
 func main() {
-	if err := run(); err != nil {
+	if err := run(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
-	out := flag.String("out", "version.go", "output file path")
-	pkg := flag.String("pkg", "version", "Go package name")
-	asInit := flag.Bool("init", false, "emit func init() assigning existing package vars instead of var declarations")
-	showVersion := flag.Bool("version", false, "print version and exit")
-	flag.Parse()
+func run(args []string) error {
+	fs := flag.NewFlagSet("generate-version", flag.ExitOnError)
+	out := fs.String("out", "version.go", "output file path")
+	pkg := fs.String("pkg", "version", "Go package name")
+	asInit := fs.Bool("init", false, "emit func init() assigning existing package vars instead of var declarations")
+	showVersion := fs.Bool("version", false, "print version and exit")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
 
 	if *showVersion {
 		fmt.Printf("generate-version %s\n",
@@ -76,9 +80,20 @@ func run() error {
 		return fmt.Errorf("failed to get git commit SHA: %w", err)
 	}
 
-	buildDate := time.Now().UTC().Format(time.RFC3339)
+	buildDate, err := commitDate(projectRoot)
+	if err != nil {
+		return fmt.Errorf("failed to get git commit date: %w", err)
+	}
 
-	dirtyOut, err := runGit(projectRoot, "status", "--porcelain")
+	// The output file is excluded so a tracked, regenerated file does not
+	// mark every later build dirty.
+	statusArgs := []string{"status", "--porcelain"}
+	if outAbs, err := filepath.Abs(*out); err == nil {
+		if rel, err := filepath.Rel(projectRoot, outAbs); err == nil && !strings.HasPrefix(rel, "..") {
+			statusArgs = append(statusArgs, "--", ":/", ":(exclude)"+filepath.ToSlash(rel))
+		}
+	}
+	dirtyOut, err := runGit(projectRoot, statusArgs...)
 	if err != nil {
 		return fmt.Errorf("failed to check git status: %w", err)
 	}
@@ -104,14 +119,33 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to format generated source: %w", err)
 	}
-	content := string(formatted)
+	short := commitSHA[:min(7, len(commitSHA))]
 
-	if err := os.WriteFile(*out, []byte(content), 0644); err != nil {
+	// Leave an up-to-date file alone so its mtime does not trigger rebuilds.
+	if existing, err := os.ReadFile(*out); err == nil && string(existing) == string(formatted) {
+		fmt.Printf("Unchanged %s: %s (commit: %s)\n", *out, version, short)
+		return nil
+	}
+	if err := os.WriteFile(*out, formatted, 0644); err != nil {
 		return fmt.Errorf("failed to write %s: %w", *out, err)
 	}
 
-	fmt.Printf("Generated %s: %s (commit: %s)\n", *out, version, commitSHA[:min(7, len(commitSHA))])
+	fmt.Printf("Generated %s: %s (commit: %s)\n", *out, version, short)
 	return nil
+}
+
+// commitDate returns HEAD's committer time in RFC 3339 UTC, the same instant Go
+// records as vcs.time, so the generated BuildDate is reproducible per commit.
+func commitDate(dir string) (string, error) {
+	ct, err := runGit(dir, "show", "-s", "--format=%ct", "HEAD")
+	if err != nil {
+		return "", err
+	}
+	sec, err := strconv.ParseInt(ct, 10, 64)
+	if err != nil {
+		return "", fmt.Errorf("unexpected commit time %q: %w", ct, err)
+	}
+	return time.Unix(sec, 0).UTC().Format(time.RFC3339), nil
 }
 
 func findProjectRoot() (string, error) {

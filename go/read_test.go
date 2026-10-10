@@ -17,3 +17,30 @@ func TestInfoString(t *testing.T) {
 		t.Errorf("String() = %q, want %q", got, want)
 	}
 }
+
+func TestModuleVersion(t *testing.T) {
+	tests := []struct {
+		in   string
+		want string
+		ok   bool
+	}{
+		{"", "", false},
+		{"(devel)", "", false},
+		{"v0.0.0-20260916141054-30e9d853cd61", "", false},
+		{"v0.0.0-20260916141054-30e9d853cd61+dirty", "", false},
+		{"v1.2.4-0.20260916141054-30e9d853cd61", "", false},
+		{"v1.2.3-rc.1.0.20260916141054-30e9d853cd61+dirty", "", false},
+		{"v1.2.3", "1.2.3", true},
+		{"v1.2.3+dirty", "1.2.3", true},
+		{"v1.2.3-rc.1", "1.2.3-rc.1", true},
+		{"v1.2.3+build.5", "1.2.3+build.5", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.in, func(t *testing.T) {
+			got, ok := moduleVersion(tt.in)
+			if got != tt.want || ok != tt.ok {
+				t.Errorf("moduleVersion(%q) = %q, %v; want %q, %v", tt.in, got, ok, tt.want, tt.ok)
+			}
+		})
+	}
+}

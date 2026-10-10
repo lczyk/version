@@ -220,7 +220,12 @@ mod tests {
     #[test]
     fn prerelease_with_full_metadata() {
         assert_eq!(
-            format_version("1.0.0-rc.1", "abc1234567890", "2026-01-01T00:00:00Z", "dirty"),
+            format_version(
+                "1.0.0-rc.1",
+                "abc1234567890",
+                "2026-01-01T00:00:00Z",
+                "dirty"
+            ),
             "1.0.0-rc.1 @ abc1234 (2026-01-01T00:00:00Z, dirty)"
         );
     }
